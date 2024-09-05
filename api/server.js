@@ -1,6 +1,8 @@
 const { BlobServiceClient } = require("@azure/storage-blob");
-const { ComputerVisionClient } = require('@azure/cognitiveservices-computervision');
-const { ApiKeyCredentials } = require('@azure/ms-rest-js');
+const {
+  ComputerVisionClient,
+} = require("@azure/cognitiveservices-computervision");
+const { ApiKeyCredentials } = require("@azure/ms-rest-js");
 
 // Use environment variables for secrets
 const subKey = process.env.AZURE_COMPUTER_VISION_KEY;
@@ -9,7 +11,8 @@ const sasUrl = process.env.AZURE_BLOB_SAS_URL;
 const imagesUrl = process.env.AZURE_IMAGES_URL;
 
 const computerVisionClient = new ComputerVisionClient(
-  new ApiKeyCredentials({ inHeader: { 'Ocp-Apim-Subscription-Key': subKey } }), endPointUrl
+  new ApiKeyCredentials({ inHeader: { "Ocp-Apim-Subscription-Key": subKey } }),
+  endPointUrl
 );
 
 const blobServiceClient = new BlobServiceClient(sasUrl);
@@ -17,22 +20,30 @@ const containerClient = blobServiceClient.getContainerClient("images");
 
 module.exports = async function (req, res) {
   // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  res.setHeader("Access-Control-Allow-Credentials", true);
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  // another common pattern
+  // res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+  );
   // Handle preflight request
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     res.status(200).end();
     return;
   }
 
-  if (req.method !== 'POST' || !req.body.image) {
-    res.status(400).send('No image found in request body.');
+  if (req.method !== "POST" || !req.body.image) {
+    res.status(400).send("No image found in request body.");
     return;
   }
 
-  const imageBuffer = Buffer.from(req.body.image, 'base64'); // assuming base64-encoded image
+  const imageBuffer = Buffer.from(req.body.image, "base64"); // assuming base64-encoded image
 
   try {
     const imageUrl = await uploadImageToStorage(imageBuffer);
@@ -43,12 +54,12 @@ module.exports = async function (req, res) {
 
     res.status(200).send(extractedText);
   } catch (error) {
-    res.status(500).send('Error: ' + error.message);
+    res.status(500).send("Error: " + error.message);
   }
 };
 
 async function uploadImageToStorage(image) {
-  const blobName = 'image-' + Date.now().toString();
+  const blobName = "image-" + Date.now().toString();
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.uploadData(image);
   return `${imagesUrl}${blobName}`;
@@ -56,7 +67,7 @@ async function uploadImageToStorage(image) {
 
 async function readTextFromURL(imageUrl) {
   let result = await computerVisionClient.read(imageUrl);
-  let operation = result.operationLocation.split('/').slice(-1)[0];
+  let operation = result.operationLocation.split("/").slice(-1)[0];
 
   let readOperationResult;
   do {
@@ -68,15 +79,15 @@ async function readTextFromURL(imageUrl) {
 }
 
 function printRecognizedText(readResults) {
-  let recognizedText = '';
+  let recognizedText = "";
   for (const result of readResults) {
     for (const line of result.lines) {
-      recognizedText += line.text + '\n';
+      recognizedText += line.text + "\n";
     }
   }
   return recognizedText;
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
