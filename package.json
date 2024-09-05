@@ -2,7 +2,6 @@
   "dependencies": {
     "@azure/cognitiveservices-computervision": "^8.2.0",
     "@azure/ms-rest-js": "^2.7.0",
-    "@azure/storage-blob": "^12.24.0",
-    "@vercel/node": "^3.2.11"
+    "@azure/storage-blob": "^12.24.0"
   }
 }

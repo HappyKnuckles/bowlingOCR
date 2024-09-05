@@ -1,8 +1,6 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { BlobServiceClient, ContainerClient } from "@azure/storage-blob";
-import { ComputerVisionClient } from '@azure/cognitiveservices-computervision';
-import { ApiKeyCredentials } from '@azure/ms-rest-js';
-import { ReadResult, ReadOperationResult } from '@azure/cognitiveservices-computervision/esm/models';
+const { BlobServiceClient } = require("@azure/storage-blob");
+const { ComputerVisionClient } = require('@azure/cognitiveservices-computervision');
+const { ApiKeyCredentials } = require('@azure/ms-rest-js');
 
 // Use environment variables for secrets
 const subKey = process.env.AZURE_COMPUTER_VISION_KEY;
@@ -17,9 +15,18 @@ const computerVisionClient = new ComputerVisionClient(
 const blobServiceClient = new BlobServiceClient(sasUrl);
 const containerClient = blobServiceClient.getContainerClient("images");
 
-export default async function (req, res) {
+module.exports = async function (context, req) {
+  context.log('JavaScript HTTP trigger function processed a request.');
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');  
+  
   if (req.method !== 'POST' || !req.body.image) {
-    res.status(400).send('No image found in request body.');
+    context.res = {
+      status: 400,
+      body: 'No image found in request body.'
+    };
     return;
   }
 
@@ -32,11 +39,17 @@ export default async function (req, res) {
 
     await deleteImageFromStorage(imageUrl);
 
-    res.status(200).send(extractedText);
+    context.res = {
+      status: 200,
+      body: extractedText
+    };
   } catch (error) {
-    res.status(500).send('Error: ' + error.message);
+    context.res = {
+      status: 500,
+      body: 'Error: ' + error.message
+    };
   }
-}
+};
 
 async function uploadImageToStorage(image) {
   const blobName = 'image-' + Date.now().toString();
@@ -62,8 +75,7 @@ function printRecognizedText(readResults) {
   let recognizedText = '';
   for (const result of readResults) {
     for (const line of result.lines) {
-      const lineText = line.words.map((w) => w.text).join(' ');
-      recognizedText += lineText + '\n';
+      recognizedText += line.text + '\n';
     }
   }
   return recognizedText;
@@ -71,10 +83,4 @@ function printRecognizedText(readResults) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function deleteImageFromStorage(imageUrl) {
-  const blobName = imageUrl.substring(imagesUrl.length);
-  const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-  await blockBlobClient.delete();
 }
