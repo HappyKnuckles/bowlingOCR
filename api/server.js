@@ -20,6 +20,16 @@ const containerClient = blobServiceClient.getContainerClient("images");
 
 module.exports = async function (req, res) {
   console.log("Request received");
+    // Set CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  
+    // Handle preflight request
+    if (req.method === "OPTIONS") {
+      res.status(200).end();
+      return;
+    }
   console.log(req.method);
   console.log(req.body);
   if (req.method !== "POST" || !req.body.image) {
