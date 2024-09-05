@@ -15,18 +15,20 @@ const computerVisionClient = new ComputerVisionClient(
 const blobServiceClient = new BlobServiceClient(sasUrl);
 const containerClient = blobServiceClient.getContainerClient("images");
 
-module.exports = async function (context, req) {
-  context.log('JavaScript HTTP trigger function processed a request.');
-
+module.exports = async function (req, res) {
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');  
-  
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST' || !req.body.image) {
-    context.res = {
-      status: 400,
-      body: 'No image found in request body.'
-    };
+    res.status(400).send('No image found in request body.');
     return;
   }
 
@@ -39,15 +41,9 @@ module.exports = async function (context, req) {
 
     await deleteImageFromStorage(imageUrl);
 
-    context.res = {
-      status: 200,
-      body: extractedText
-    };
+    res.status(200).send(extractedText);
   } catch (error) {
-    context.res = {
-      status: 500,
-      body: 'Error: ' + error.message
-    };
+    res.status(500).send('Error: ' + error.message);
   }
 };
 
