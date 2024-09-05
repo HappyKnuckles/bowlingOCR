@@ -21,7 +21,7 @@ const containerClient = blobServiceClient.getContainerClient("images");
 module.exports = async function (req, res) {
   console.log("Request received");
   console.log(req.method);
-  console.log(req.body.image);
+  console.log(req.body);
   if (req.method !== "POST" || !req.body.image) {
     console.log("Invalid request method or no image found in request body");
     res.status(400).send("No image found in request body.");
