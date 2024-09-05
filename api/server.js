@@ -11,13 +11,13 @@ const sasUrl = process.env.AZURE_BLOB_SAS_URL;
 const imagesUrl = process.env.AZURE_IMAGES_URL;
 
 const computerVisionClient = new ComputerVisionClient(
-  new ApiKeyCredentials({ inHeader: { 'Ocp-Apim-Subscription-Key': subKey } }), endPointUrl!
+  new ApiKeyCredentials({ inHeader: { 'Ocp-Apim-Subscription-Key': subKey } }), endPointUrl
 );
 
-const blobServiceClient = new BlobServiceClient(sasUrl!);
+const blobServiceClient = new BlobServiceClient(sasUrl);
 const containerClient = blobServiceClient.getContainerClient("images");
 
-export default async function (req: VercelRequest, res: VercelResponse) {
+export default async function (req, res) {
   if (req.method !== 'POST' || !req.body.image) {
     res.status(400).send('No image found in request body.');
     return;
@@ -38,27 +38,27 @@ export default async function (req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function uploadImageToStorage(image: Buffer): Promise<string> {
+async function uploadImageToStorage(image) {
   const blobName = 'image-' + Date.now().toString();
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.uploadData(image);
   return `${imagesUrl}${blobName}`;
 }
 
-async function readTextFromURL(imageUrl: string): Promise<ReadResult[]> {
+async function readTextFromURL(imageUrl) {
   let result = await computerVisionClient.read(imageUrl);
   let operation = result.operationLocation.split('/').slice(-1)[0];
 
-  let readOperationResult: ReadOperationResult;
+  let readOperationResult;
   do {
     await sleep(1000);
     readOperationResult = await computerVisionClient.getReadResult(operation);
   } while (readOperationResult.status !== "succeeded");
 
-  return readOperationResult.analyzeResult!.readResults;
+  return readOperationResult.analyzeResult.readResults;
 }
 
-function printRecognizedText(readResults: ReadResult[]): string {
+function printRecognizedText(readResults) {
   let recognizedText = '';
   for (const result of readResults) {
     for (const line of result.lines) {
@@ -69,12 +69,12 @@ function printRecognizedText(readResults: ReadResult[]): string {
   return recognizedText;
 }
 
-function sleep(ms: number) {
+function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function deleteImageFromStorage(imageUrl: string): Promise<void> {
-  const blobName = imageUrl.substring(imagesUrl!.length);
+async function deleteImageFromStorage(imageUrl) {
+  const blobName = imageUrl.substring(imagesUrl.length);
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
   await blockBlobClient.delete();
 }
