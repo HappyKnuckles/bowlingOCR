@@ -32,20 +32,39 @@ module.exports = async function (req, res) {
     return;
   }
 
+  const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
   const imageBuffer = Buffer.from(req.body.image, "base64");
 
+  if (imageBuffer.length > MAX_IMAGE_SIZE_BYTES) {
+
+    res
+      .status(413)
+      .send(
+        `Image is too large. Please upload an image smaller than ${
+          MAX_IMAGE_SIZE_BYTES / 1024 / 1024
+        }MB.`
+      );
+    return;
+
+  }
+  let imageUrl = null;
   try {
-    const imageUrl = await uploadImageToStorage(imageBuffer);
+    imageUrl = await uploadImageToStorage(imageBuffer);
 
     const printedResult = await readTextFromURL(imageUrl);
 
     const extractedText = printRecognizedText(printedResult);
 
-    await deleteImageFromStorage(imageUrl);
-
     res.status(200).send(extractedText);
   } catch (error) {
     res.status(500).send("Error: " + error.message);
+  } finally {
+    if(imageUrl) {
+      deleteImageFromStorage(imageUrl).catch((err) => {
+        console.error(`Failed to delete blob ${imageUrl}:`, err);
+      });
+    }
   }
 };
 
